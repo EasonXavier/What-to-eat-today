@@ -9,15 +9,35 @@
     legacyHistory: 'meal-picker.history.v1'
   };
 
-  const DEFAULT_CATEGORIES = [
+  const PREVIOUS_DEFAULT_CATEGORIES = [
     { id: 'rice', name: '米饭类', items: ['盖饭', '炒饭'] },
     { id: 'noodles', name: '面食类', items: ['牛肉面', '饺子或馄饨'] },
     { id: 'hotpot', name: '锅物类', items: ['火锅', '麻辣烫'] },
     { id: 'fast-food', name: '快餐类', items: ['汉堡', '炸鸡'] }
   ];
 
+  const DEFAULT_CATEGORIES = [
+    { id: 'hunan', name: '湘菜与下饭菜', items: ['小炒黄牛肉', '辣椒炒肉', '剁椒鱼头', '农家一碗香', '酸辣鸡杂', '干锅花菜'] },
+    { id: 'sichuan', name: '川菜与麻辣', items: ['水煮牛肉', '辣子鸡', '毛血旺', '麻婆豆腐', '酸菜鱼', '冒菜'] },
+    { id: 'grilled-fish', name: '烤鱼', items: ['重麻辣鮰鱼', '青花椒鮰鱼', '藤椒凌波鱼', '酸菜淮王鱼', '蒜香鮰鱼', '豆豉烤鱼', '鲜椒烤鱼'] },
+    { id: 'sashimi', name: '日料与刺身', items: ['三文鱼刺身', '金枪鱼刺身', '北极贝刺身', '综合刺身拼盘', '寿司拼盘', '日式鳗鱼饭'] },
+    { id: 'yakiniku', name: '日式烤肉', items: ['和牛烤肉', '牛舌', '烤内脏', '石锅拌饭', '冷面', '泡菜烤肉套餐'] },
+    { id: 'hotpot', name: '火锅与锅物', items: ['重庆火锅', '潮汕牛肉火锅', '椰子鸡', '猪肚鸡', '麻辣香锅', '麻辣烫'] },
+    { id: 'rice', name: '米饭与盖饭', items: ['黄焖鸡米饭', '卤肉饭', '咖喱饭', '烧腊双拼饭', '牛肉盖饭', '炒饭'] },
+    { id: 'noodles', name: '粉面与饺子', items: ['牛肉面', '重庆小面', '螺蛳粉', '米粉', '馄饨', '饺子'] },
+    { id: 'bbq', name: '烧烤与烤肉', items: ['中式烧烤', '烤羊肉串', '烤生蚝', '韩式烤肉', '烤鸡', '烤串拼盘'] },
+    { id: 'seafood', name: '海鲜', items: ['生腌海鲜', '白灼虾', '清蒸鱼', '蒜蓉扇贝', '海鲜煲', '海鲜粥'] },
+    { id: 'fast-food', name: '西式快餐', items: ['麦当劳', '汉堡王', '炸鸡', '披萨', '热狗', '三明治'] },
+    { id: 'western', name: '西餐', items: ['牛排', '意大利面', '焗饭', '西式烤鸡', '凯撒沙拉', '奶油蘑菇汤'] },
+    { id: 'lean-protein', name: '清淡与高蛋白', items: ['三文鱼沙拉', '金枪鱼沙拉', '鸡胸肉套餐', '清汤牛肉', '蒸蛋套餐', '轻食碗'] },
+    { id: 'convenience', name: '便利与速食', items: ['便利店便当', '预制菜', '速冻饺子', '泡面加蛋', '自热米饭', '简单外卖套餐'] }
+  ];
+
   const EXCLUSION_WINDOW_MS = 24 * 60 * 60 * 1000;
   const MAX_HISTORY = 100;
+  const MAX_IMPORT_BYTES = 1024 * 1024;
+  const MAX_CATEGORIES = 100;
+  const MAX_ITEMS_PER_CATEGORY = 200;
 
   const elements = {
     resultLabel: document.querySelector('#resultLabel'),
@@ -35,6 +55,8 @@
     subitemTemplate: document.querySelector('#subitemTemplate'),
     emptyState: document.querySelector('#emptyState'),
     resetButton: document.querySelector('#resetButton'),
+    importFile: document.querySelector('#importFile'),
+    importStatus: document.querySelector('#importStatus'),
     clearHistoryButton: document.querySelector('#clearHistoryButton'),
     historyList: document.querySelector('#historyList'),
     historyEmpty: document.querySelector('#historyEmpty'),
@@ -73,7 +95,7 @@
   }
 
   function sameText(a, b) {
-    return a.toLocaleLowerCase('zh-CN') === b.toLocaleLowerCase('zh-CN');
+    return normalizeText(a).toLocaleLowerCase('zh-CN') === normalizeText(b).toLocaleLowerCase('zh-CN');
   }
 
   function sanitizeCategories(value) {
@@ -108,9 +130,23 @@
     return sanitized;
   }
 
+  function categoryContentSignature(value) {
+    return sanitizeCategories(value).map(category => ({ name: category.name, items: category.items }));
+  }
+
+  function isPreviousDefault(value) {
+    return JSON.stringify(categoryContentSignature(value)) === JSON.stringify(categoryContentSignature(PREVIOUS_DEFAULT_CATEGORIES));
+  }
+
   function loadCategories() {
     if (localStorage.getItem(STORAGE_KEYS.categories) !== null) {
-      return sanitizeCategories(readJson(STORAGE_KEYS.categories, []));
+      const saved = sanitizeCategories(readJson(STORAGE_KEYS.categories, []));
+      if (isPreviousDefault(saved)) {
+        const upgraded = clone(DEFAULT_CATEGORIES);
+        writeJson(STORAGE_KEYS.categories, upgraded);
+        return upgraded;
+      }
+      return saved;
     }
 
     const legacyItems = readJson(STORAGE_KEYS.legacyItems, []);
@@ -164,17 +200,13 @@
 
   function secureRandomIndex(length) {
     if (length <= 1) return 0;
-
     if (window.crypto?.getRandomValues) {
       const maxUint32 = 0x100000000;
       const limit = maxUint32 - (maxUint32 % length);
       const values = new Uint32Array(1);
-      do {
-        window.crypto.getRandomValues(values);
-      } while (values[0] >= limit);
+      do window.crypto.getRandomValues(values); while (values[0] >= limit);
       return values[0] % length;
     }
-
     return Math.floor(Math.random() * length);
   }
 
@@ -229,7 +261,6 @@
   function animateResult(pool, duration) {
     return new Promise(resolve => {
       const startedAt = performance.now();
-
       const tick = now => {
         elements.result.textContent = pickRandom(pool);
         const elapsed = now - startedAt;
@@ -239,7 +270,6 @@
         }
         resolve();
       };
-
       requestAnimationFrame(tick);
     });
   }
@@ -370,8 +400,7 @@
     }
 
     elements.newCategory.setCustomValidity('');
-    const category = { id: makeId('category'), name, items: [] };
-    categories.push(category);
+    categories.push({ id: makeId('category'), name, items: [] });
     writeJson(STORAGE_KEYS.categories, categories);
     renderCategories();
     elements.newCategory.value = '';
@@ -415,6 +444,90 @@
     category.items = category.items.filter(candidate => candidate !== item);
     writeJson(STORAGE_KEYS.categories, categories);
     renderCategories();
+  }
+
+  function parseTxtList(text) {
+    const lines = String(text ?? '').replace(/^\uFEFF/, '').split(/\r?\n/);
+    const parsed = [];
+    const categoryNames = new Set();
+    let current = null;
+
+    lines.forEach((rawLine, index) => {
+      const lineNumber = index + 1;
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#') || line.startsWith('//')) return;
+
+      const headerMatch = line.match(/^\[(.+)]$/) || line.match(/^【(.+)】$/);
+      if (headerMatch) {
+        const name = normalizeText(headerMatch[1]);
+        if (!name) throw new Error(`第 ${lineNumber} 行的一级分类名称为空。`);
+        if (name.length > 30) throw new Error(`第 ${lineNumber} 行的一级分类名称超过30个字符。`);
+
+        const normalizedName = name.toLocaleLowerCase('zh-CN');
+        if (categoryNames.has(normalizedName)) throw new Error(`第 ${lineNumber} 行的一级分类“${name}”重复。`);
+        if (parsed.length >= MAX_CATEGORIES) throw new Error(`一级分类不能超过 ${MAX_CATEGORIES} 个。`);
+
+        current = { id: makeId('imported'), name, items: [] };
+        parsed.push(current);
+        categoryNames.add(normalizedName);
+        return;
+      }
+
+      if (!current) throw new Error(`第 ${lineNumber} 行出现二级选项，但此前没有 [一级分类]。`);
+
+      const item = normalizeText(line);
+      if (item.length > 40) throw new Error(`第 ${lineNumber} 行的二级选项超过40个字符。`);
+      if (current.items.length >= MAX_ITEMS_PER_CATEGORY) {
+        throw new Error(`一级分类“${current.name}”的二级选项不能超过 ${MAX_ITEMS_PER_CATEGORY} 个。`);
+      }
+      if (!current.items.some(existing => sameText(existing, item))) current.items.push(item);
+    });
+
+    if (!parsed.length) throw new Error('文件中没有找到任何 [一级分类]。');
+    const emptyCategory = parsed.find(category => category.items.length === 0);
+    if (emptyCategory) throw new Error(`一级分类“${emptyCategory.name}”没有二级选项。`);
+    return parsed;
+  }
+
+  function setImportStatus(message, type = '') {
+    elements.importStatus.textContent = message;
+    elements.importStatus.dataset.type = type;
+  }
+
+  async function importTxtFile(file) {
+    if (!file) return;
+    setImportStatus('正在读取文件…');
+
+    try {
+      if (file.size > MAX_IMPORT_BYTES) throw new Error('TXT 文件不能超过 1 MB。');
+      const text = await file.text();
+      const imported = parseTxtList(text);
+      const totalItems = imported.reduce((sum, category) => sum + category.items.length, 0);
+
+      const confirmed = window.confirm(
+        `将导入 ${imported.length} 个一级分类和 ${totalItems} 个二级选项。\n\n` +
+        '现有列表、抽取历史和24小时锁定将被清空，是否继续？'
+      );
+      if (!confirmed) {
+        setImportStatus('已取消导入。');
+        return;
+      }
+
+      // 原子替换：只有文件完整验证通过后，才覆盖现有数据；绝不与旧列表合并。
+      categories = imported;
+      history = [];
+      writeJson(STORAGE_KEYS.categories, categories);
+      writeJson(STORAGE_KEYS.history, history);
+
+      renderCategories();
+      renderHistory();
+      showInitialState('个性化列表已导入，原列表和抽取记录已清空。');
+      setImportStatus(`导入成功：${imported.length} 个一级分类，${totalItems} 个二级选项。`, 'success');
+    } catch (error) {
+      setImportStatus(`导入失败：${error instanceof Error ? error.message : '文件格式无效。'}`, 'error');
+    } finally {
+      elements.importFile.value = '';
+    }
   }
 
   async function pickMeal() {
@@ -492,19 +605,17 @@
     renderHistory();
     renderAvailability();
 
-    if (history.length) {
-      showHistoryEntry(history[0], '已撤销上一条记录。');
-    } else {
-      showInitialState('已撤销上一条记录。');
-    }
+    if (history.length) showHistoryEntry(history[0], '已撤销上一条记录。');
+    else showInitialState('已撤销上一条记录。');
   }
 
   function resetCategories() {
-    const confirmed = window.confirm('恢复示例会覆盖当前全部一级分类和二级选项，是否继续？');
+    const confirmed = window.confirm('恢复默认列表会覆盖当前全部一级分类和二级选项，是否继续？');
     if (!confirmed) return;
     categories = clone(DEFAULT_CATEGORIES);
     writeJson(STORAGE_KEYS.categories, categories);
     renderCategories();
+    setImportStatus('已恢复默认列表。', 'success');
   }
 
   function clearHistory() {
@@ -538,6 +649,7 @@
   });
   elements.newCategory.addEventListener('input', () => elements.newCategory.setCustomValidity(''));
   elements.resetButton.addEventListener('click', resetCategories);
+  elements.importFile.addEventListener('change', () => importTxtFile(elements.importFile.files?.[0]));
   elements.clearHistoryButton.addEventListener('click', clearHistory);
   elements.themeToggle.addEventListener('click', toggleTheme);
   window.addEventListener('pageshow', renderAvailability);
@@ -549,9 +661,6 @@
   renderCategories();
   renderHistory();
 
-  if (history.length) {
-    showHistoryEntry(history[0]);
-  } else {
-    showInitialState();
-  }
+  if (history.length) showHistoryEntry(history[0]);
+  else showInitialState();
 })();
