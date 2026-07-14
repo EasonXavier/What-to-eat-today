@@ -39,7 +39,7 @@
             <h2 id="optionsTitle">一级分类与二级选项</h2>
             <p id="categorySummary" class="panel-description"></p>
           </div>
-          <button id="resetButton" class="secondary-button" type="button">恢复示例</button>
+          <button id="resetButton" class="secondary-button" type="button">恢复默认列表</button>
         </div>
 
         <form id="addCategoryForm" class="add-form">
@@ -47,6 +47,30 @@
           <input id="newCategory" name="newCategory" type="text" maxlength="30" autocomplete="off" placeholder="添加一级分类，例如：面食">
           <button class="secondary-button" type="submit">添加分类</button>
         </form>
+
+        <section class="import-box" aria-labelledby="importTitle">
+          <div class="import-heading">
+            <div>
+              <h3 id="importTitle">导入个性化 TXT</h3>
+              <p>文件验证通过后，将完全替换现有列表，并清空抽取历史与24小时锁定。</p>
+            </div>
+            <div class="import-actions">
+              <a class="secondary-button link-button" href="meal-list-example.txt" download>下载示例</a>
+              <label class="secondary-button file-button" for="importFile">
+                选择 TXT 文件
+                <input id="importFile" type="file" accept=".txt,text/plain">
+              </label>
+            </div>
+          </div>
+          <pre class="format-example" aria-label="TXT格式示例">[烤鱼]
+重麻辣鮰鱼
+青花椒鮰鱼
+
+[日料与刺身]
+三文鱼刺身
+综合刺身拼盘</pre>
+          <p id="importStatus" class="import-status" role="status" aria-live="polite"></p>
+        </section>
 
         <div id="emptyState" class="empty-state" hidden>
           还没有一级分类。先添加分类，再在分类中添加二级选项。
