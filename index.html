@@ -3,96 +3,94 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f5efe7">
-  <meta name="description" content="先抽一级分类，再抽具体餐食；一级分类在24小时内不重复。">
+  <meta name="theme-color" content="#f5f5f7">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="先选用餐类型，再决定具体吃什么；大类在24小时内不会重复。">
   <title>今天吃什么</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="page-shell">
     <header class="site-header">
-      <div>
-        <p class="eyebrow">DAILY MEAL PICKER</p>
+      <div class="brand-block">
+        <p class="section-kicker">Daily meal picker</p>
         <h1>今天吃什么</h1>
+        <p class="brand-subtitle">不纠结，交给它。</p>
       </div>
-      <button id="themeToggle" class="icon-button" type="button" aria-label="切换深色模式" title="切换深色模式">
+      <button id="themeToggle" class="icon-button" type="button" aria-label="切换明暗模式" title="切换明暗模式">
         <span aria-hidden="true">◐</span>
       </button>
     </header>
 
     <main>
-      <section class="hero-card" aria-labelledby="resultLabel">
-        <div class="rule-badge">一级分类 · 24小时内不重复</div>
-        <p id="resultLabel" class="result-label">今天的选择</p>
+      <section class="decision-card" aria-labelledby="resultLabel">
+        <div class="decision-glow" aria-hidden="true"></div>
+        <div class="status-pill">大类抽中过后，24 小时内不再重复</div>
+        <p id="resultLabel" class="result-label">这顿吃</p>
         <p id="categoryResult" class="category-result" hidden></p>
-        <div id="result" class="result" aria-live="polite">点击按钮，让网页帮你决定</div>
-        <p id="resultMeta" class="result-meta">先抽一级分类，再抽具体选项。</p>
-        <button id="pickButton" class="primary-button" type="button">帮我决定</button>
+        <div id="result" class="result" aria-live="polite">点一下，马上决定</div>
+        <p id="resultMeta" class="result-meta">先选一个类型，再选具体吃什么。</p>
+        <div class="decision-actions">
+          <button id="pickButton" class="primary-button" type="button">帮我选一个</button>
+          <button id="undoButton" class="plain-button" type="button" hidden>撤回这次</button>
+        </div>
         <p id="availabilityNote" class="availability-note"></p>
-        <button id="undoButton" class="text-button" type="button" hidden>撤销上一次结果</button>
       </section>
 
-      <section class="panel" aria-labelledby="optionsTitle">
+      <section class="panel menu-panel" aria-labelledby="optionsTitle">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">TWO-LEVEL OPTIONS</p>
-            <h2 id="optionsTitle">一级分类与二级选项</h2>
+            <p class="section-kicker">Your menu</p>
+            <h2 id="optionsTitle">我的菜单</h2>
             <p id="categorySummary" class="panel-description"></p>
           </div>
-          <button id="resetButton" class="secondary-button" type="button">恢复默认列表</button>
+          <button id="resetButton" class="secondary-button" type="button">恢复默认</button>
         </div>
 
-        <form id="addCategoryForm" class="add-form">
-          <label class="sr-only" for="newCategory">添加一级分类</label>
-          <input id="newCategory" name="newCategory" type="text" maxlength="30" autocomplete="off" placeholder="添加一级分类，例如：面食">
-          <button class="secondary-button" type="submit">添加分类</button>
-        </form>
+        <div class="menu-tools">
+          <form id="addCategoryForm" class="add-form">
+            <label class="sr-only" for="newCategory">新建大类</label>
+            <input id="newCategory" name="newCategory" type="text" maxlength="30" autocomplete="off" placeholder="新建一个大类，例如：粉面">
+            <button class="secondary-button" type="submit">添加</button>
+          </form>
 
-        <section class="import-box" aria-labelledby="importTitle">
-          <div class="import-heading">
+          <div class="transfer-card">
             <div>
-              <h3 id="importTitle">导入个性化 TXT</h3>
-              <p>文件验证通过后，将完全替换现有列表，并清空抽取历史与24小时锁定。</p>
+              <h3>导入或导出</h3>
+              <p>换设备、交给 AI 调整，或者留一份备份。</p>
             </div>
-            <div class="import-actions">
-              <a class="secondary-button link-button" href="meal-list-example.txt" download>下载示例</a>
+            <div class="transfer-actions">
+              <button id="exportButton" class="secondary-button" type="button">导出列表</button>
               <label class="secondary-button file-button" for="importFile">
-                选择 TXT 文件
+                导入列表
                 <input id="importFile" type="file" accept=".txt,text/plain">
               </label>
             </div>
+            <p id="importStatus" class="transfer-status" role="status" aria-live="polite"></p>
           </div>
-          <pre class="format-example" aria-label="TXT格式示例">[烤鱼]
-重麻辣鮰鱼
-青花椒鮰鱼
-
-[日料与刺身]
-三文鱼刺身
-综合刺身拼盘</pre>
-          <p id="importStatus" class="import-status" role="status" aria-live="polite"></p>
-        </section>
+        </div>
 
         <div id="emptyState" class="empty-state" hidden>
-          还没有一级分类。先添加分类，再在分类中添加二级选项。
+          这里还是空的。先建一个大类，再往里面加几个想吃的选项。
         </div>
-        <div id="categoryList" class="category-list" aria-label="一级分类列表"></div>
+        <div id="categoryList" class="category-list" aria-label="菜单分类"></div>
       </section>
 
-      <section class="panel compact-panel" aria-labelledby="historyTitle">
+      <section class="panel history-panel" aria-labelledby="historyTitle">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">HISTORY</p>
-            <h2 id="historyTitle">最近抽取</h2>
+            <p class="section-kicker">Recent picks</p>
+            <h2 id="historyTitle">最近选过</h2>
           </div>
-          <button id="clearHistoryButton" class="text-button" type="button">清空记录</button>
+          <button id="clearHistoryButton" class="plain-button" type="button">清空</button>
         </div>
         <ol id="historyList" class="history-list"></ol>
-        <p id="historyEmpty" class="muted">还没有抽取记录。</p>
+        <p id="historyEmpty" class="empty-copy">还没有记录。</p>
       </section>
     </main>
 
     <footer>
-      数据只保存在当前浏览器。一级分类按滚动24小时排除。
+      列表只保存在这台设备的浏览器里。抽中过的大类，24 小时内会自动跳过。
     </footer>
   </div>
 
@@ -103,22 +101,22 @@
           <h3 class="category-name"></h3>
           <p class="category-count"></p>
         </div>
-        <button class="delete-button delete-category-button" type="button">删除分类</button>
+        <button class="remove-button delete-category-button" type="button">移除</button>
       </div>
-      <form class="add-item-form">
-        <label class="sr-only">添加二级选项</label>
-        <input class="new-subitem" type="text" maxlength="40" autocomplete="off" placeholder="添加具体选项">
-        <button class="secondary-button" type="submit">添加</button>
-      </form>
-      <p class="category-empty muted">暂无二级选项，此分类不会参与抽取。</p>
       <ul class="subitem-list"></ul>
+      <p class="category-empty">还没有具体选项，这个大类暂时不会参与抽取。</p>
+      <form class="add-item-form">
+        <label class="sr-only">添加具体选项</label>
+        <input class="new-subitem" type="text" maxlength="40" autocomplete="off" placeholder="加一个想吃的选项">
+        <button class="compact-button" type="submit">加入</button>
+      </form>
     </article>
   </template>
 
   <template id="subitemTemplate">
     <li class="item-row">
       <span class="item-name"></span>
-      <button class="delete-button" type="button">删除</button>
+      <button class="remove-button" type="button">删除</button>
     </li>
   </template>
 
