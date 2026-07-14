@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5efe7">
+  <meta name="description" content="一个简单的随机用餐选择器。">
+  <title>今天吃什么</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">DAILY MEAL PICKER</p>
+        <h1>今天吃什么</h1>
+      </div>
+      <button id="themeToggle" class="icon-button" type="button" aria-label="切换深色模式" title="切换深色模式">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="hero-card" aria-labelledby="resultLabel">
+        <p id="resultLabel" class="result-label">今天的选择</p>
+        <div id="result" class="result" aria-live="polite">点击按钮，让网页帮你决定</div>
+        <p id="resultMeta" class="result-meta">当前有 <span id="itemCount">0</span> 个备选项</p>
+        <button id="pickButton" class="primary-button" type="button">帮我决定</button>
+        <button id="undoButton" class="text-button" type="button" hidden>撤销上一次结果</button>
+      </section>
+
+      <section class="panel" aria-labelledby="optionsTitle">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">OPTIONS</p>
+            <h2 id="optionsTitle">备选清单</h2>
+          </div>
+          <button id="resetButton" class="secondary-button" type="button">恢复示例</button>
+        </div>
+
+        <form id="addForm" class="add-form">
+          <label class="sr-only" for="newItem">添加备选项</label>
+          <input id="newItem" name="newItem" type="text" maxlength="30" autocomplete="off" placeholder="例如：牛肉面">
+          <button class="secondary-button" type="submit">添加</button>
+        </form>
+
+        <div id="emptyState" class="empty-state" hidden>
+          清单还是空的。先添加至少两个备选项。
+        </div>
+        <ul id="itemList" class="item-list" aria-label="备选项列表"></ul>
+      </section>
+
+      <section class="panel compact-panel" aria-labelledby="historyTitle">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">HISTORY</p>
+            <h2 id="historyTitle">最近抽取</h2>
+          </div>
+          <button id="clearHistoryButton" class="text-button" type="button">清空记录</button>
+        </div>
+        <ol id="historyList" class="history-list"></ol>
+        <p id="historyEmpty" class="muted">还没有抽取记录。</p>
+      </section>
+    </main>
+
+    <footer>
+      数据只保存在当前浏览器，不会上传到服务器。
+    </footer>
+  </div>
+
+  <template id="itemTemplate">
+    <li class="item-row">
+      <span class="item-name"></span>
+      <button class="delete-button" type="button" aria-label="删除该备选项">删除</button>
+    </li>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
