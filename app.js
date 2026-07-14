@@ -44,6 +44,7 @@
   let categories = loadCategories();
   let history = loadHistory();
   let isPicking = false;
+  let availabilityTimer = null;
 
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -247,9 +248,25 @@
     return new Promise(resolve => window.setTimeout(resolve, duration));
   }
 
+  function scheduleAvailabilityRefresh(timestamp) {
+    if (availabilityTimer !== null) {
+      window.clearTimeout(availabilityTimer);
+      availabilityTimer = null;
+    }
+    if (!timestamp) return;
+
+    const delayMs = Math.max(250, Math.min(timestamp - Date.now() + 1000, 0x7fffffff));
+    availabilityTimer = window.setTimeout(() => {
+      availabilityTimer = null;
+      renderAvailability();
+    }, delayMs);
+  }
+
   function renderAvailability() {
     const drawable = getDrawableCategories();
     const available = getAvailableCategories();
+    const unlockAt = getNextUnlockTimestamp();
+    scheduleAvailabilityRefresh(unlockAt);
 
     elements.pickButton.disabled = isPicking || available.length === 0;
 
@@ -260,7 +277,6 @@
     }
 
     if (!available.length) {
-      const unlockAt = getNextUnlockTimestamp();
       elements.availabilityNote.textContent = unlockAt
         ? `所有一级分类都在24小时锁定期内，最早于 ${formatTimestamp(unlockAt)} 解锁。`
         : '当前没有可抽取的一级分类。';
@@ -524,6 +540,10 @@
   elements.resetButton.addEventListener('click', resetCategories);
   elements.clearHistoryButton.addEventListener('click', clearHistory);
   elements.themeToggle.addEventListener('click', toggleTheme);
+  window.addEventListener('pageshow', renderAvailability);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) renderAvailability();
+  });
 
   initializeTheme();
   renderCategories();
