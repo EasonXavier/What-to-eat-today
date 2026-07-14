@@ -9,30 +9,6 @@
     legacyHistory: 'meal-picker.history.v1'
   };
 
-  const PREVIOUS_DEFAULT_CATEGORIES = [
-    { id: 'rice', name: '米饭类', items: ['盖饭', '炒饭'] },
-    { id: 'noodles', name: '面食类', items: ['牛肉面', '饺子或馄饨'] },
-    { id: 'hotpot', name: '锅物类', items: ['火锅', '麻辣烫'] },
-    { id: 'fast-food', name: '快餐类', items: ['汉堡', '炸鸡'] }
-  ];
-
-  const DEFAULT_CATEGORIES = [
-    { id: 'hunan', name: '湘菜与下饭菜', items: ['小炒黄牛肉', '辣椒炒肉', '剁椒鱼头', '农家一碗香', '酸辣鸡杂', '干锅花菜'] },
-    { id: 'sichuan', name: '川菜与麻辣', items: ['水煮牛肉', '辣子鸡', '毛血旺', '麻婆豆腐', '酸菜鱼', '冒菜'] },
-    { id: 'grilled-fish', name: '烤鱼', items: ['重麻辣鮰鱼', '青花椒鮰鱼', '藤椒凌波鱼', '酸菜淮王鱼', '蒜香鮰鱼', '豆豉烤鱼', '鲜椒烤鱼'] },
-    { id: 'sashimi', name: '日料与刺身', items: ['三文鱼刺身', '金枪鱼刺身', '北极贝刺身', '综合刺身拼盘', '寿司拼盘', '日式鳗鱼饭'] },
-    { id: 'yakiniku', name: '日式烤肉', items: ['和牛烤肉', '牛舌', '烤内脏', '石锅拌饭', '冷面', '泡菜烤肉套餐'] },
-    { id: 'hotpot', name: '火锅与锅物', items: ['重庆火锅', '潮汕牛肉火锅', '椰子鸡', '猪肚鸡', '麻辣香锅', '麻辣烫'] },
-    { id: 'rice', name: '米饭与盖饭', items: ['黄焖鸡米饭', '卤肉饭', '咖喱饭', '烧腊双拼饭', '牛肉盖饭', '炒饭'] },
-    { id: 'noodles', name: '粉面与饺子', items: ['牛肉面', '重庆小面', '螺蛳粉', '米粉', '馄饨', '饺子'] },
-    { id: 'bbq', name: '烧烤与烤肉', items: ['中式烧烤', '烤羊肉串', '烤生蚝', '韩式烤肉', '烤鸡', '烤串拼盘'] },
-    { id: 'seafood', name: '海鲜', items: ['生腌海鲜', '白灼虾', '清蒸鱼', '蒜蓉扇贝', '海鲜煲', '海鲜粥'] },
-    { id: 'fast-food', name: '西式快餐', items: ['麦当劳', '汉堡王', '炸鸡', '披萨', '热狗', '三明治'] },
-    { id: 'western', name: '西餐', items: ['牛排', '意大利面', '焗饭', '西式烤鸡', '凯撒沙拉', '奶油蘑菇汤'] },
-    { id: 'lean-protein', name: '清淡与高蛋白', items: ['三文鱼沙拉', '金枪鱼沙拉', '鸡胸肉套餐', '清汤牛肉', '蒸蛋套餐', '轻食碗'] },
-    { id: 'convenience', name: '便利与速食', items: ['便利店便当', '预制菜', '速冻饺子', '泡面加蛋', '自热米饭', '简单外卖套餐'] }
-  ];
-
   const EXCLUSION_WINDOW_MS = 24 * 60 * 60 * 1000;
   const MAX_HISTORY = 100;
   const MAX_IMPORT_BYTES = 1024 * 1024;
@@ -55,6 +31,7 @@
     subitemTemplate: document.querySelector('#subitemTemplate'),
     emptyState: document.querySelector('#emptyState'),
     resetButton: document.querySelector('#resetButton'),
+    exportButton: document.querySelector('#exportButton'),
     importFile: document.querySelector('#importFile'),
     importStatus: document.querySelector('#importStatus'),
     clearHistoryButton: document.querySelector('#clearHistoryButton'),
@@ -63,14 +40,16 @@
     themeToggle: document.querySelector('#themeToggle')
   };
 
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  const DEFAULT_CATEGORIES = clone(window.MEAL_PICKER_DEFAULTS || []);
+
   let categories = loadCategories();
   let history = loadHistory();
   let isPicking = false;
   let availabilityTimer = null;
-
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
 
   function readJson(key, fallback = null) {
     try {
@@ -130,23 +109,9 @@
     return sanitized;
   }
 
-  function categoryContentSignature(value) {
-    return sanitizeCategories(value).map(category => ({ name: category.name, items: category.items }));
-  }
-
-  function isPreviousDefault(value) {
-    return JSON.stringify(categoryContentSignature(value)) === JSON.stringify(categoryContentSignature(PREVIOUS_DEFAULT_CATEGORIES));
-  }
-
   function loadCategories() {
     if (localStorage.getItem(STORAGE_KEYS.categories) !== null) {
-      const saved = sanitizeCategories(readJson(STORAGE_KEYS.categories, []));
-      if (isPreviousDefault(saved)) {
-        const upgraded = clone(DEFAULT_CATEGORIES);
-        writeJson(STORAGE_KEYS.categories, upgraded);
-        return upgraded;
-      }
-      return saved;
+      return sanitizeCategories(readJson(STORAGE_KEYS.categories, []));
     }
 
     const legacyItems = readJson(STORAGE_KEYS.legacyItems, []);
@@ -189,7 +154,7 @@
       const matchingCategory = categories.find(category => sameText(category.name, name));
       return {
         categoryId: matchingCategory?.id || '',
-        categoryName: matchingCategory?.name || '原有清单',
+        categoryName: matchingCategory?.name || '旧列表',
         itemName: name,
         timestamp: Number(entry?.timestamp) || Date.now()
       };
@@ -301,20 +266,20 @@
     elements.pickButton.disabled = isPicking || available.length === 0;
 
     if (!drawable.length) {
-      elements.availabilityNote.textContent = '至少需要一个包含二级选项的一级分类。';
-      elements.pickButton.title = '请先添加可抽取的二级选项';
+      elements.availabilityNote.textContent = '先在菜单里加一个大类和至少一个选项。';
+      elements.pickButton.title = '菜单里还没有可抽取的内容';
       return;
     }
 
     if (!available.length) {
       elements.availabilityNote.textContent = unlockAt
-        ? `所有一级分类都在24小时锁定期内，最早于 ${formatTimestamp(unlockAt)} 解锁。`
-        : '当前没有可抽取的一级分类。';
-      elements.pickButton.title = '24小时内不重复规则正在生效';
+        ? `今天已经把所有大类都轮过一遍了，${formatTimestamp(unlockAt)} 后可以继续选。`
+        : '现在没有可以抽取的大类。';
+      elements.pickButton.title = '24 小时内不重复规则正在生效';
       return;
     }
 
-    elements.availabilityNote.textContent = `${available.length}/${drawable.length} 个一级分类当前可抽取。`;
+    elements.availabilityNote.textContent = `还有 ${available.length} 个大类可以选。`;
     elements.pickButton.title = '';
   }
 
@@ -332,10 +297,10 @@
       const list = card.querySelector('.subitem-list');
 
       name.textContent = category.name;
-      count.textContent = `${category.items.length} 个二级选项`;
-      newSubitem.placeholder = `添加到“${category.name}”`;
-      newSubitem.setAttribute('aria-label', `为“${category.name}”添加二级选项`);
-      deleteCategoryButton.setAttribute('aria-label', `删除一级分类“${category.name}”及其全部选项`);
+      count.textContent = `${category.items.length} 个选项`;
+      newSubitem.placeholder = `加到“${category.name}”`;
+      newSubitem.setAttribute('aria-label', `给“${category.name}”添加一个选项`);
+      deleteCategoryButton.setAttribute('aria-label', `移除“${category.name}”和里面的全部选项`);
       deleteCategoryButton.addEventListener('click', () => removeCategory(category.id));
 
       addItemForm.addEventListener('submit', event => {
@@ -347,18 +312,19 @@
       category.items.forEach(item => {
         const row = elements.subitemTemplate.content.firstElementChild.cloneNode(true);
         row.querySelector('.item-name').textContent = item;
-        const deleteButton = row.querySelector('.delete-button');
-        deleteButton.setAttribute('aria-label', `从“${category.name}”删除“${item}”`);
+        const deleteButton = row.querySelector('.remove-button');
+        deleteButton.setAttribute('aria-label', `从“${category.name}”里删除“${item}”`);
         deleteButton.addEventListener('click', () => removeSubitem(category.id, item));
         list.append(row);
       });
 
       empty.hidden = category.items.length > 0;
+      list.hidden = category.items.length === 0;
       elements.categoryList.append(card);
     });
 
     const itemCount = categories.reduce((sum, category) => sum + category.items.length, 0);
-    elements.categorySummary.textContent = `${categories.length} 个一级分类，${itemCount} 个二级选项`;
+    elements.categorySummary.textContent = `${categories.length} 个大类，${itemCount} 个具体选项`;
     elements.emptyState.hidden = categories.length !== 0;
     renderAvailability();
   }
@@ -394,7 +360,7 @@
     if (!name) return;
 
     if (categories.some(category => sameText(category.name, name))) {
-      elements.newCategory.setCustomValidity('这个一级分类已经存在。');
+      elements.newCategory.setCustomValidity('这个大类已经有了。');
       elements.newCategory.reportValidity();
       return;
     }
@@ -413,7 +379,7 @@
     const category = categories.find(candidate => candidate.id === categoryId);
     if (!category) return;
 
-    const confirmed = window.confirm(`删除一级分类“${category.name}”及其 ${category.items.length} 个二级选项？`);
+    const confirmed = window.confirm(`要移除“${category.name}”和里面的 ${category.items.length} 个选项吗？`);
     if (!confirmed) return;
 
     categories = categories.filter(candidate => candidate.id !== categoryId);
@@ -427,7 +393,7 @@
     if (!category || !item) return;
 
     if (category.items.some(existing => sameText(existing, item))) {
-      input.setCustomValidity('这个二级选项已经存在于当前分类。');
+      input.setCustomValidity('这个选项已经在列表里了。');
       input.reportValidity();
       return;
     }
@@ -460,12 +426,12 @@
       const headerMatch = line.match(/^\[(.+)]$/) || line.match(/^【(.+)】$/);
       if (headerMatch) {
         const name = normalizeText(headerMatch[1]);
-        if (!name) throw new Error(`第 ${lineNumber} 行的一级分类名称为空。`);
-        if (name.length > 30) throw new Error(`第 ${lineNumber} 行的一级分类名称超过30个字符。`);
+        if (!name) throw new Error(`第 ${lineNumber} 行的大类名称是空的。`);
+        if (name.length > 30) throw new Error(`第 ${lineNumber} 行的大类名称超过 30 个字符。`);
 
         const normalizedName = name.toLocaleLowerCase('zh-CN');
-        if (categoryNames.has(normalizedName)) throw new Error(`第 ${lineNumber} 行的一级分类“${name}”重复。`);
-        if (parsed.length >= MAX_CATEGORIES) throw new Error(`一级分类不能超过 ${MAX_CATEGORIES} 个。`);
+        if (categoryNames.has(normalizedName)) throw new Error(`第 ${lineNumber} 行的大类“${name}”重复了。`);
+        if (parsed.length >= MAX_CATEGORIES) throw new Error(`大类不能超过 ${MAX_CATEGORIES} 个。`);
 
         current = { id: makeId('imported'), name, items: [] };
         parsed.push(current);
@@ -473,30 +439,88 @@
         return;
       }
 
-      if (!current) throw new Error(`第 ${lineNumber} 行出现二级选项，但此前没有 [一级分类]。`);
+      if (!current) throw new Error(`第 ${lineNumber} 行是具体选项，但前面还没有 [大类]。`);
 
       const item = normalizeText(line);
-      if (item.length > 40) throw new Error(`第 ${lineNumber} 行的二级选项超过40个字符。`);
+      if (item.length > 40) throw new Error(`第 ${lineNumber} 行的选项超过 40 个字符。`);
       if (current.items.length >= MAX_ITEMS_PER_CATEGORY) {
-        throw new Error(`一级分类“${current.name}”的二级选项不能超过 ${MAX_ITEMS_PER_CATEGORY} 个。`);
+        throw new Error(`“${current.name}”里的选项不能超过 ${MAX_ITEMS_PER_CATEGORY} 个。`);
       }
       if (!current.items.some(existing => sameText(existing, item))) current.items.push(item);
     });
 
-    if (!parsed.length) throw new Error('文件中没有找到任何 [一级分类]。');
+    if (!parsed.length) throw new Error('文件里没有找到任何 [大类]。');
     const emptyCategory = parsed.find(category => category.items.length === 0);
-    if (emptyCategory) throw new Error(`一级分类“${emptyCategory.name}”没有二级选项。`);
+    if (emptyCategory) throw new Error(`“${emptyCategory.name}”下面还没有具体选项。`);
     return parsed;
   }
 
-  function setImportStatus(message, type = '') {
+  function setTransferStatus(message, type = '') {
     elements.importStatus.textContent = message;
     elements.importStatus.dataset.type = type;
   }
 
+  function buildExportText() {
+    const data = categories.flatMap(category => [
+      `[${category.name}]`,
+      ...category.items,
+      ''
+    ]).join('\n').trimEnd();
+
+    return `# 今天吃什么｜菜单文件\n` +
+      `#\n` +
+      `# 使用说明\n` +
+      `# 1. 请使用 UTF-8 编码保存为 .txt 文件。\n` +
+      `# 2. 大类写成 [大类名称]，全角括号【大类名称】也可以。\n` +
+      `# 3. 大类下方每一行写一个具体选项，直到出现下一个大类。\n` +
+      `# 4. 空行会被忽略；以 # 或 // 开头的行会被当作注释。\n` +
+      `# 5. 大类名称不能重复，每个大类至少需要一个具体选项。\n` +
+      `# 6. 同一大类内的重复选项会自动去重。\n` +
+      `# 7. 大类名称最多 30 个字符，具体选项最多 40 个字符。\n` +
+      `# 8. 导入成功后，会完全替换网页里的原菜单，并清空抽取记录和 24 小时锁定。\n` +
+      `#\n` +
+      `# 内容粒度建议\n` +
+      `# - 大类用于决定今天吃哪一类，例如：烤鱼、日料、粉面饺子。\n` +
+      `# - 具体选项应该是可以直接搜索或点外卖的菜式。\n` +
+      `# - 可以写“酸辣鱼”“麻辣烤鱼”这样的口味加菜式。\n` +
+      `# - 不建议把具体调料和具体食材同时写死，例如“青花椒凌波鱼”。\n` +
+      `# - 尽量让同一层级的选项粒度接近，避免“火锅”和“某品牌某套餐”并列。\n` +
+      `#\n` +
+      `# 交给其他 AI 客制化时，可以直接使用下面这段要求：\n` +
+      `# “请根据我的饮食偏好修改下方菜单。保留 [大类] 加逐行具体选项的 TXT 格式；\n` +
+      `#  大类应适合做第一层随机，具体选项应是外卖平台常见、可以直接下单的菜式；\n` +
+      `#  允许口味加菜式的粒度，但不要同时指定过细的调料、具体品种、部位或门店；\n` +
+      `#  删除我不吃的内容，补充我常吃的内容，并确保各选项粒度一致。\n` +
+      `#  请只输出可直接导入的 TXT 内容，不要使用 Markdown 代码块。”\n` +
+      `#\n` +
+      `# 以下是当前菜单。可以直接编辑后重新导入。\n\n` +
+      `${data}\n`;
+  }
+
+  function exportTxtFile() {
+    if (!categories.length) {
+      setTransferStatus('菜单还是空的，暂时没有内容可以导出。', 'error');
+      return;
+    }
+
+    const text = `\uFEFF${buildExportText()}`;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const date = new Intl.DateTimeFormat('sv-SE').format(new Date());
+
+    anchor.href = url;
+    anchor.download = `今天吃什么-菜单-${date}.txt`;
+    document.body.append(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTransferStatus('菜单已导出。文件里已经附上格式说明和 AI 客制化提示。', 'success');
+  }
+
   async function importTxtFile(file) {
     if (!file) return;
-    setImportStatus('正在读取文件…');
+    setTransferStatus('正在读取文件…');
 
     try {
       if (file.size > MAX_IMPORT_BYTES) throw new Error('TXT 文件不能超过 1 MB。');
@@ -505,15 +529,14 @@
       const totalItems = imported.reduce((sum, category) => sum + category.items.length, 0);
 
       const confirmed = window.confirm(
-        `将导入 ${imported.length} 个一级分类和 ${totalItems} 个二级选项。\n\n` +
-        '现有列表、抽取历史和24小时锁定将被清空，是否继续？'
+        `准备导入 ${imported.length} 个大类和 ${totalItems} 个具体选项。\n\n` +
+        '现在的菜单、抽取记录和 24 小时锁定都会被清空。继续吗？'
       );
       if (!confirmed) {
-        setImportStatus('已取消导入。');
+        setTransferStatus('已取消导入。');
         return;
       }
 
-      // 原子替换：只有文件完整验证通过后，才覆盖现有数据；绝不与旧列表合并。
       categories = imported;
       history = [];
       writeJson(STORAGE_KEYS.categories, categories);
@@ -521,10 +544,10 @@
 
       renderCategories();
       renderHistory();
-      showInitialState('个性化列表已导入，原列表和抽取记录已清空。');
-      setImportStatus(`导入成功：${imported.length} 个一级分类，${totalItems} 个二级选项。`, 'success');
+      showInitialState('新菜单已经导入，原来的菜单和记录都清空了。');
+      setTransferStatus(`导入完成：${imported.length} 个大类，${totalItems} 个具体选项。`, 'success');
     } catch (error) {
-      setImportStatus(`导入失败：${error instanceof Error ? error.message : '文件格式无效。'}`, 'error');
+      setTransferStatus(`没有导入：${error instanceof Error ? error.message : '文件格式不对。'}`, 'error');
     } finally {
       elements.importFile.value = '';
     }
@@ -543,8 +566,8 @@
     elements.result.classList.add('is-picking');
     elements.categoryResult.hidden = true;
 
-    elements.resultLabel.textContent = '第一层：一级分类';
-    elements.resultMeta.textContent = '正在排除过去24小时内已经抽中的一级分类…';
+    elements.resultLabel.textContent = '先选类型';
+    elements.resultMeta.textContent = '正在跳过过去 24 小时里已经选过的大类…';
     await animateResult(availableCategories.map(category => category.name), 680);
     elements.result.textContent = finalCategory.name;
     elements.result.classList.remove('is-picking');
@@ -553,18 +576,18 @@
     await delay(360);
     elements.result.classList.remove('is-stage-final');
     elements.result.classList.add('is-picking');
-    elements.resultLabel.textContent = '第二层：具体选项';
+    elements.resultLabel.textContent = '再选具体吃什么';
     elements.categoryResult.hidden = false;
-    elements.categoryResult.textContent = `一级分类 · ${finalCategory.name}`;
-    elements.resultMeta.textContent = `正在从 ${finalCategory.items.length} 个二级选项中抽取…`;
+    elements.categoryResult.textContent = finalCategory.name;
+    elements.resultMeta.textContent = `正在从 ${finalCategory.items.length} 个选项里挑一个…`;
     await animateResult(finalCategory.items, 760);
 
     elements.result.textContent = finalItem;
     elements.result.classList.remove('is-picking');
     void elements.result.offsetWidth;
     elements.result.classList.add('is-final');
-    elements.resultLabel.textContent = '今天的选择';
-    elements.resultMeta.textContent = '一级分类已锁定24小时。';
+    elements.resultLabel.textContent = '这顿吃';
+    elements.resultMeta.textContent = `“${finalCategory.name}”接下来 24 小时不会再被抽到。`;
 
     history.unshift({
       categoryId: finalCategory.id,
@@ -578,24 +601,24 @@
     isPicking = false;
     renderHistory();
     renderAvailability();
-    elements.pickButton.textContent = '再抽一次';
+    elements.pickButton.textContent = '换一个';
   }
 
-  function showHistoryEntry(entry, meta = '上一次抽到的结果') {
-    elements.resultLabel.textContent = '今天的选择';
+  function showHistoryEntry(entry, meta = '上次选到的结果。') {
+    elements.resultLabel.textContent = '这顿吃';
     elements.categoryResult.hidden = false;
-    elements.categoryResult.textContent = `一级分类 · ${entry.categoryName}`;
+    elements.categoryResult.textContent = entry.categoryName;
     elements.result.textContent = entry.itemName;
     elements.resultMeta.textContent = meta;
-    elements.pickButton.textContent = '再抽一次';
+    elements.pickButton.textContent = '换一个';
   }
 
-  function showInitialState(meta = '先抽一级分类，再抽具体选项。') {
-    elements.resultLabel.textContent = '今天的选择';
+  function showInitialState(meta = '先选一个类型，再选具体吃什么。') {
+    elements.resultLabel.textContent = '这顿吃';
     elements.categoryResult.hidden = true;
-    elements.result.textContent = '点击按钮，让网页帮你决定';
+    elements.result.textContent = '点一下，马上决定';
     elements.resultMeta.textContent = meta;
-    elements.pickButton.textContent = '帮我决定';
+    elements.pickButton.textContent = '帮我选一个';
   }
 
   function undoLastPick() {
@@ -605,28 +628,28 @@
     renderHistory();
     renderAvailability();
 
-    if (history.length) showHistoryEntry(history[0], '已撤销上一条记录。');
-    else showInitialState('已撤销上一条记录。');
+    if (history.length) showHistoryEntry(history[0], '刚才那次已经撤回。');
+    else showInitialState('刚才那次已经撤回。');
   }
 
   function resetCategories() {
-    const confirmed = window.confirm('恢复默认列表会覆盖当前全部一级分类和二级选项，是否继续？');
+    const confirmed = window.confirm('恢复默认菜单会覆盖你现在的全部大类和具体选项。继续吗？');
     if (!confirmed) return;
     categories = clone(DEFAULT_CATEGORIES);
     writeJson(STORAGE_KEYS.categories, categories);
     renderCategories();
-    setImportStatus('已恢复默认列表。', 'success');
+    setTransferStatus('已经恢复默认菜单。', 'success');
   }
 
   function clearHistory() {
     if (!history.length) return;
-    const confirmed = window.confirm('清空全部抽取记录？清空后，24小时分类锁定也会解除。');
+    const confirmed = window.confirm('要清空最近选过的记录吗？清空后，所有 24 小时锁定也会解除。');
     if (!confirmed) return;
     history = [];
     writeJson(STORAGE_KEYS.history, history);
     renderHistory();
     renderAvailability();
-    showInitialState('抽取记录和24小时锁定已清空。');
+    showInitialState('记录和 24 小时锁定都清空了。');
   }
 
   function initializeTheme() {
@@ -649,6 +672,7 @@
   });
   elements.newCategory.addEventListener('input', () => elements.newCategory.setCustomValidity(''));
   elements.resetButton.addEventListener('click', resetCategories);
+  elements.exportButton.addEventListener('click', exportTxtFile);
   elements.importFile.addEventListener('change', () => importTxtFile(elements.importFile.files?.[0]));
   elements.clearHistoryButton.addEventListener('click', clearHistory);
   elements.themeToggle.addEventListener('click', toggleTheme);
