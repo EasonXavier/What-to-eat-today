@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5efe7">
-  <meta name="description" content="一个简单的随机用餐选择器。">
+  <meta name="description" content="先抽一级分类，再抽具体餐食；一级分类在24小时内不重复。">
   <title>今天吃什么</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,32 +22,36 @@
 
     <main>
       <section class="hero-card" aria-labelledby="resultLabel">
+        <div class="rule-badge">一级分类 · 24小时内不重复</div>
         <p id="resultLabel" class="result-label">今天的选择</p>
+        <p id="categoryResult" class="category-result" hidden></p>
         <div id="result" class="result" aria-live="polite">点击按钮，让网页帮你决定</div>
-        <p id="resultMeta" class="result-meta">当前有 <span id="itemCount">0</span> 个备选项</p>
+        <p id="resultMeta" class="result-meta">先抽一级分类，再抽具体选项。</p>
         <button id="pickButton" class="primary-button" type="button">帮我决定</button>
+        <p id="availabilityNote" class="availability-note"></p>
         <button id="undoButton" class="text-button" type="button" hidden>撤销上一次结果</button>
       </section>
 
       <section class="panel" aria-labelledby="optionsTitle">
         <div class="panel-heading">
           <div>
-            <p class="eyebrow">OPTIONS</p>
-            <h2 id="optionsTitle">备选清单</h2>
+            <p class="eyebrow">TWO-LEVEL OPTIONS</p>
+            <h2 id="optionsTitle">一级分类与二级选项</h2>
+            <p id="categorySummary" class="panel-description"></p>
           </div>
           <button id="resetButton" class="secondary-button" type="button">恢复示例</button>
         </div>
 
-        <form id="addForm" class="add-form">
-          <label class="sr-only" for="newItem">添加备选项</label>
-          <input id="newItem" name="newItem" type="text" maxlength="30" autocomplete="off" placeholder="例如：牛肉面">
-          <button class="secondary-button" type="submit">添加</button>
+        <form id="addCategoryForm" class="add-form">
+          <label class="sr-only" for="newCategory">添加一级分类</label>
+          <input id="newCategory" name="newCategory" type="text" maxlength="30" autocomplete="off" placeholder="添加一级分类，例如：面食">
+          <button class="secondary-button" type="submit">添加分类</button>
         </form>
 
         <div id="emptyState" class="empty-state" hidden>
-          清单还是空的。先添加至少两个备选项。
+          还没有一级分类。先添加分类，再在分类中添加二级选项。
         </div>
-        <ul id="itemList" class="item-list" aria-label="备选项列表"></ul>
+        <div id="categoryList" class="category-list" aria-label="一级分类列表"></div>
       </section>
 
       <section class="panel compact-panel" aria-labelledby="historyTitle">
@@ -64,14 +68,33 @@
     </main>
 
     <footer>
-      数据只保存在当前浏览器，不会上传到服务器。
+      数据只保存在当前浏览器。一级分类按滚动24小时排除。
     </footer>
   </div>
 
-  <template id="itemTemplate">
+  <template id="categoryTemplate">
+    <article class="category-card">
+      <div class="category-heading">
+        <div>
+          <h3 class="category-name"></h3>
+          <p class="category-count"></p>
+        </div>
+        <button class="delete-button delete-category-button" type="button">删除分类</button>
+      </div>
+      <form class="add-item-form">
+        <label class="sr-only">添加二级选项</label>
+        <input class="new-subitem" type="text" maxlength="40" autocomplete="off" placeholder="添加具体选项">
+        <button class="secondary-button" type="submit">添加</button>
+      </form>
+      <p class="category-empty muted">暂无二级选项，此分类不会参与抽取。</p>
+      <ul class="subitem-list"></ul>
+    </article>
+  </template>
+
+  <template id="subitemTemplate">
     <li class="item-row">
       <span class="item-name"></span>
-      <button class="delete-button" type="button" aria-label="删除该备选项">删除</button>
+      <button class="delete-button" type="button">删除</button>
     </li>
   </template>
 
