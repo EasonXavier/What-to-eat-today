@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
   <meta name="color-scheme" content="light dark">
+  <meta name="application-version" content="">
   <meta name="description" content="先选用餐类型，再决定具体吃什么；大类在24小时内不会重复。">
   <title>今天吃什么</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="version.js?v=1.0.0" defer></script>
 </head>
 <body>
   <div class="page-shell">
@@ -17,9 +19,12 @@
         <h1>今天吃什么</h1>
         <p class="brand-subtitle">不纠结，交给它。</p>
       </div>
-      <button id="themeToggle" class="icon-button" type="button" aria-label="切换明暗模式" title="切换明暗模式">
-        <span aria-hidden="true">◐</span>
-      </button>
+      <div class="header-actions">
+        <span class="app-version" data-app-version></span>
+        <button id="themeToggle" class="icon-button" type="button" aria-label="切换明暗模式" title="切换明暗模式">
+          <span aria-hidden="true">◐</span>
+        </button>
+      </div>
     </header>
 
     <main>
@@ -120,8 +125,8 @@
     </li>
   </template>
 
-  <script src="default-list.js" defer></script>
-  <script src="app.js" defer></script>
-  <script src="ipad-export-fix.js" defer></script>
+  <script src="default-list.js?v=1.0.0" defer></script>
+  <script src="app.js?v=1.0.0" defer></script>
+  <script src="ipad-export-fix.js?v=1.0.0" defer></script>
 </body>
 </html>

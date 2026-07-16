@@ -1,5 +1,9 @@
 # 今天吃什么
 
+## Version
+
+Current version: `1.0.0`. See [VERSIONING.md](./VERSIONING.md) for the `a.b.c` increment policy.
+
 一个不依赖框架和后端的两层随机用餐选择器，可直接部署到 GitHub Pages。
 
 ## 抽取规则
