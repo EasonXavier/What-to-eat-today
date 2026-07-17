@@ -76,11 +76,21 @@
     return JSON.stringify(normalize(value));
   }
 
+  function hasUsableDish(value) {
+    return Array.isArray(value) && value.some(category =>
+      Array.isArray(category?.items) && category.items.some(item => String(item ?? '').trim())
+    );
+  }
+
+  function restoreDefaults() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CATEGORIES));
+  }
+
   function migrateKnownDefaults() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw === null) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CATEGORIES));
+        restoreDefaults();
         return;
       }
 
@@ -89,9 +99,15 @@
       const isKnownDefault = [FIRST_DEFAULT_CATEGORIES, SECOND_DEFAULT_CATEGORIES, THIRD_DEFAULT_CATEGORIES]
         .some(defaultSet => signature(defaultSet) === savedSignature);
 
-      if (isKnownDefault) localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CATEGORIES));
+      // 某次更新可能已经把空菜单写入 localStorage。空数组、损坏结构或没有任何菜式时，恢复内置菜单。
+      if (!hasUsableDish(saved) || isKnownDefault) restoreDefaults();
     } catch {
-      // 主程序会继续尝试读取本地数据。
+      // 无法解析的旧数据也恢复为完整的内置菜单，避免页面停留在空状态。
+      try {
+        restoreDefaults();
+      } catch {
+        // 主程序仍会尝试读取 window.MEAL_PICKER_DEFAULTS。
+      }
     }
   }
 
