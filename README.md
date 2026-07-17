@@ -2,7 +2,7 @@
 
 ## Version
 
-Current version: `1.2.0`. See [VERSIONING.md](./VERSIONING.md) for the `a.b.c` increment policy.
+Current version: `1.2.1`. See [VERSIONING.md](./VERSIONING.md) for the `a.b.c` increment policy.
 
 一个不依赖框架和后端的两层随机用餐选择器，可直接部署到 GitHub Pages。
 
@@ -64,7 +64,8 @@ python -m http.server 8000
 
 - 首次访问时写入当前默认菜单
 - 自动升级未修改过的旧版默认菜单
-- 保留用户手动编辑或 TXT 导入的个性化菜单
+- 当浏览器保存的是空数组、损坏数据或没有任何可抽取菜式时，重新写入完整默认菜单
+- 保留仍包含有效菜式的用户自定义菜单
 - 向主程序提供“恢复默认”所使用的数据
 
-已经客制化过的菜单不会被自动覆盖。
+已经客制化且仍包含有效菜式的菜单不会被自动覆盖。
