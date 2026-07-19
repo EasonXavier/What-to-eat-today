@@ -2,8 +2,8 @@
   'use strict';
 
   const APP_VERSION = Object.freeze({
-    number: '1.2.1',
-    releasedAt: '2026-07-17',
+    number: '2.0.0',
+    releasedAt: '2026-07-19',
     scheme: 'a.b.c'
   });
 

@@ -8,6 +8,6 @@ Versions use `a.b.c`:
 - `b`: user-facing functionality updates. Reset `c` to `0`.
 - `c`: bug fixes that do not add functionality or change the architecture.
 
-Current version: `1.2.1`.
+Current version: `2.0.0`.
 
 When changing the version, update only the `number` field in `version.js`, then update the cache query value in `index.html` to the same version.

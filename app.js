@@ -2,8 +2,8 @@
   'use strict';
 
   const STORAGE_KEYS = {
-    categories: 'meal-picker.categories.v2',
-    history: 'meal-picker.history.v2',
+    categories: 'meal-picker.categories.v3',
+    history: 'meal-picker.history.v3',
     theme: 'meal-picker.theme.v1',
     legacyItems: 'meal-picker.items.v1',
     legacyHistory: 'meal-picker.history.v1'
@@ -77,6 +77,20 @@
     return normalizeText(a).toLocaleLowerCase('zh-CN') === normalizeText(b).toLocaleLowerCase('zh-CN');
   }
 
+  function sanitizeItem(value) {
+    const name = normalizeText(typeof value === 'string' ? value : value?.name);
+    const seenTags = new Set();
+    const tags = Array.isArray(value?.tags)
+      ? value.tags.map(normalizeText).filter(tag => {
+          const normalizedTag = tag.toLocaleLowerCase('zh-CN');
+          if (!tag || seenTags.has(normalizedTag)) return false;
+          seenTags.add(normalizedTag);
+          return true;
+        })
+      : [];
+    return { name, tags };
+  }
+
   function sanitizeCategories(value) {
     if (!Array.isArray(value)) return [];
 
@@ -91,9 +105,9 @@
 
       const seenItems = new Set();
       const items = Array.isArray(category?.items)
-        ? category.items.map(normalizeText).filter(item => {
-            const normalizedItem = item.toLocaleLowerCase('zh-CN');
-            if (!item || seenItems.has(normalizedItem)) return false;
+        ? category.items.map(sanitizeItem).filter(item => {
+            const normalizedItem = item.name.toLocaleLowerCase('zh-CN');
+            if (!item.name || seenItems.has(normalizedItem)) return false;
             seenItems.add(normalizedItem);
             return true;
           })
@@ -119,7 +133,7 @@
       const migrated = legacyItems
         .map(normalizeText)
         .filter(Boolean)
-        .map(item => ({ id: makeId('legacy'), name: item, items: [item] }));
+        .map(item => ({ id: makeId('legacy'), name: item, items: [{ name: item, tags: [] }] }));
       writeJson(STORAGE_KEYS.categories, migrated);
       return migrated;
     }
@@ -311,9 +325,9 @@
 
       category.items.forEach(item => {
         const row = elements.subitemTemplate.content.firstElementChild.cloneNode(true);
-        row.querySelector('.item-name').textContent = item;
+        row.querySelector('.item-name').textContent = item.name;
         const deleteButton = row.querySelector('.remove-button');
-        deleteButton.setAttribute('aria-label', `从“${category.name}”里删除“${item}”`);
+        deleteButton.setAttribute('aria-label', `从“${category.name}”里删除“${item.name}”`);
         deleteButton.addEventListener('click', () => removeSubitem(category.id, item));
         list.append(row);
       });
@@ -392,14 +406,14 @@
     const item = normalizeText(input.value);
     if (!category || !item) return;
 
-    if (category.items.some(existing => sameText(existing, item))) {
+    if (category.items.some(existing => sameText(existing.name, item))) {
       input.setCustomValidity('这个选项已经在列表里了。');
       input.reportValidity();
       return;
     }
 
     input.setCustomValidity('');
-    category.items.push(item);
+    category.items.push({ name: item, tags: [] });
     writeJson(STORAGE_KEYS.categories, categories);
     renderCategories();
   }
@@ -446,7 +460,9 @@
       if (current.items.length >= MAX_ITEMS_PER_CATEGORY) {
         throw new Error(`“${current.name}”里的选项不能超过 ${MAX_ITEMS_PER_CATEGORY} 个。`);
       }
-      if (!current.items.some(existing => sameText(existing, item))) current.items.push(item);
+      if (!current.items.some(existing => sameText(existing.name, item))) {
+        current.items.push({ name: item, tags: [] });
+      }
     });
 
     if (!parsed.length) throw new Error('文件里没有找到任何 [大类]。');
@@ -463,7 +479,7 @@
   function buildExportText() {
     const data = categories.flatMap(category => [
       `[${category.name}]`,
-      ...category.items,
+      ...category.items.map(item => item.name),
       ''
     ]).join('\n').trimEnd();
 
@@ -580,9 +596,9 @@
     elements.categoryResult.hidden = false;
     elements.categoryResult.textContent = finalCategory.name;
     elements.resultMeta.textContent = `正在从 ${finalCategory.items.length} 个选项里挑一个…`;
-    await animateResult(finalCategory.items, 760);
+    await animateResult(finalCategory.items.map(item => item.name), 760);
 
-    elements.result.textContent = finalItem;
+    elements.result.textContent = finalItem.name;
     elements.result.classList.remove('is-picking');
     void elements.result.offsetWidth;
     elements.result.classList.add('is-final');
@@ -592,7 +608,7 @@
     history.unshift({
       categoryId: finalCategory.id,
       categoryName: finalCategory.name,
-      itemName: finalItem,
+      itemName: finalItem.name,
       timestamp: Date.now()
     });
     history = history.slice(0, MAX_HISTORY);

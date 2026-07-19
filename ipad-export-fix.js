@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'meal-picker.categories.v2';
+  const STORAGE_KEY = 'meal-picker.categories.v3';
   const exportButton = document.querySelector('#exportButton');
   const status = document.querySelector('#importStatus');
 
@@ -24,7 +24,9 @@
   function buildExportText(categories) {
     const menu = categories.flatMap(category => [
       `[${String(category?.name || '').trim()}]`,
-      ...(Array.isArray(category?.items) ? category.items.map(item => String(item).trim()).filter(Boolean) : []),
+      ...(Array.isArray(category?.items)
+        ? category.items.map(item => String(typeof item === 'string' ? item : item?.name ?? '').trim()).filter(Boolean)
+        : []),
       ''
     ]).join('\n').trimEnd();
 
